@@ -94,5 +94,36 @@ namespace PersonalPhotos.Test
             Assert.True(_controller.ModelState.ContainsKey(""));
             Assert.Equal("User was not found", _controller.ModelState[""].Errors[0].ErrorMessage);
         }
+
+        [Fact]
+        public async Task Create_GivenModelStateInvalid_ReturnToView()
+        {
+            _controller.ModelState.AddModelError("Test", "Test");
+
+            var result = await _controller.Create(Mock.Of<LoginViewModel>());
+            Assert.IsType<ViewResult>(result);
+            Assert.True(_controller.ModelState.ErrorCount > 0);
+            Assert.True(_controller.ModelState.ContainsKey("Test"));
+            Assert.Equal("Test", _controller.ModelState["Test"].Errors[0].ErrorMessage);
+            Assert.True(_controller.ModelState.ContainsKey(""));
+            Assert.Equal("Invalid user details", _controller.ModelState[""].Errors[0].ErrorMessage);
+        }
+
+        [Fact]
+        public async Task Create_GivenExistingUserEmail_ReturnToView()
+        {
+            const string password = "123";
+            var modelView = Mock.Of<LoginViewModel>(x => x.Email == "a@b.com" && x.Password == password);
+            var model = Mock.Of<User>(x => x.Password == password);
+
+            _logins.Setup(x => x.GetUser(It.IsAny<string>())).ReturnsAsync(model);
+
+            var result = await _controller.Create(modelView);
+
+            Assert.IsType<ViewResult>(result);
+            Assert.True(_controller.ModelState.ErrorCount > 0);
+            Assert.True(_controller.ModelState.ContainsKey(""));
+            Assert.Equal("This email adress is already registered", _controller.ModelState[""].Errors[0].ErrorMessage);
+        }
     }
 }
