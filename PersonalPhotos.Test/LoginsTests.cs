@@ -61,5 +61,38 @@ namespace PersonalPhotos.Test
 
             Assert.IsType<RedirectToActionResult>(result);
         }
+
+        [Fact]
+        public async Task Login_GivenIncorrectPassword_ReturnLoginViewWithError()
+        {
+            var modelView = Mock.Of<LoginViewModel>(x => x.Email == "a@b.com" && x.Password == "123");
+            var model = Mock.Of<User>(x => x.Password == "456");
+
+            _logins.Setup(x => x.GetUser(It.IsAny<string>())).ReturnsAsync(model);
+
+            var result = await _controller.Login(modelView);
+
+            Assert.IsType<ViewResult>(result);
+            Assert.Equal("Login", (result as ViewResult).ViewName, ignoreCase: true);
+            Assert.True(_controller.ModelState.ErrorCount > 0);
+            Assert.True(_controller.ModelState.ContainsKey(""));
+            Assert.Equal("Invalid password", _controller.ModelState[""].Errors[0].ErrorMessage);
+        }
+
+        [Fact]
+        public async Task Login_GivenIncorrectEmail_ReturnLoginViewWithError()
+        {
+            var modelView = Mock.Of<LoginViewModel>(x => x.Email == "a@b.com" && x.Password == "123");
+            User user = null;
+            _logins.Setup(x => x.GetUser(modelView.Email)).ReturnsAsync(user);
+
+            var result = await _controller.Login(modelView);
+
+            Assert.IsType<ViewResult>(result);
+            Assert.Equal("Login", (result as ViewResult).ViewName, ignoreCase: true);
+            Assert.True(_controller.ModelState.ErrorCount > 0);
+            Assert.True(_controller.ModelState.ContainsKey(""));
+            Assert.Equal("User was not found", _controller.ModelState[""].Errors[0].ErrorMessage);
+        }
     }
 }
